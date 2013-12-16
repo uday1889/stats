@@ -9,10 +9,11 @@ shinyUI(pageWithSidebar(
   sidebarPanel(
     
     selectInput("profile", "Investment Profile:",
-                 c("Distribute Equally" = "equal",
-                   "Highest Returns" = "hi.ret",
-                   "Lowest Risks" = "low.risk",
-                   "Optimal" = "optimal")),
+                c("Distribute Equally" = "equal",
+                  "Weighted by Returns" = "weighted",
+                  "Highest Returns" = "hi.ret",
+                  "Lowest Risks" = "low.risk")
+    ),
     br(),
     
     checkboxGroupInput("stocks", "Stock:",
@@ -31,11 +32,11 @@ shinyUI(pageWithSidebar(
                             "ITC"="ITC.csv", 
                             "Jindal Steel"="Jindal Steel.csv", 
                             "LT"="LT.csv", 
-                            #                                 "Mahindra & Mahindra"="Mahindra & Mahindra.csv", 
-                            #                                 "Maruti Suzuki"="Maruti Suzuki.csv", 
-                            #                                 "ONGC"="ONGC.csv", 
-                            #                                 "Punjab National Bank"="Punjab National Bank.csv", 
-                            #                                 "Ranbaxy"="Ranbaxy.csv", 
+                            "Mahindra & Mahindra"="Mahindra & Mahindra.csv", 
+                            "Maruti Suzuki"="Maruti Suzuki.csv", 
+                            "ONGC"="ONGC.csv", 
+                            "Punjab National Bank"="Punjab National Bank.csv", 
+                            "Ranbaxy"="Ranbaxy.csv", 
                             "SBI"="SBI.csv", 
                             "Tata Motors"="Tata Motors.csv", 
                             "Tata Steel"="Tata Steel.csv", 
@@ -50,8 +51,8 @@ shinyUI(pageWithSidebar(
   
   
   mainPanel(
-    verbatimTextOutput("checkStocks"),
-    plotOutput("returnsPlot",height=200),
-    verbatimTextOutput("returnsDetails")
+    plotOutput("returnsPlot"),
+    plotOutput("distPlot")
+    #verbatimTextOutput("returnsDetails")
   )
 ))

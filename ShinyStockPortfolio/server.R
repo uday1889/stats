@@ -1,11 +1,21 @@
 library(shiny)
 
+rm(list=ls(all=TRUE))
 
-# Define server logic required to plot various variables against mpg
+
 shinyServer(function(input, output) {
+  
+  #Directory where the stock data files are stored
+  file.path <- "/home/user/work/Insofe/Mini-Project-2/Stocks/"
   
   my.file.names <- reactive(getFileNames())  
   my.stocks <- reactive(processStockFileData())
+  my.stocks.stats <- reactive(getStats())
+  my.sim.data <- reactive(getSimData())
+  my.profile.matrix <- reactive(getProfileMatrix())
+  my.pfolio.returns <- reactive(getPfolioReturns())
+  
+  sim.count <- 10000
   
   output$checkStocks <- renderPrint({
     
@@ -13,51 +23,69 @@ shinyServer(function(input, output) {
       return(NULL)
     }
     
-      #List stock names
-      i <- 1
-      for (stock in my.file.names()) {
-        if (i == 1) {
-          cat("Selected Stocks: ", "\n")  
-        }
-        cat(i, ") ", stock, "\n", sep="")
-        i <- i+1
-      }
-            
-      returns.matrix <- NULL
-      #Create correlation matrix
-      for (stock in my.stocks()) {
-        if (i == 1) {
-          returns.matrix <- matrix(stock$Day.Return)
-        } else {
-          returns.matrix <- cbind(returns.matrix, stock$Day.Return)
-        }
-      }
-
-      #Check correlation
-      if (length(my.stocks()) >1) {
-        dimnames(returns.matrix) <- list(NULL, my.file.names())
-        cor.matrix <- cor(returns.matrix)
-        large.corel <- length(which(cor.matrix > 0.3))
-        if (large.corel>length(my.file.names())) {
-          cat("\nNot a good choice...\n")
-          hi.corel <- which(cor.matrix > 0.3, arr.ind=TRUE) 
-          len <- length(hi.corel[,1])
-          i <- 1
-          for (i in 1:len) {
-            cor.row <- hi.corel[i,1]
-            cor.col <- hi.corel[i,2]
-            if (cor.row < cor.col) {
-              cat(my.file.names()[cor.row], " has hi-correlation (",
-                  cor.matrix[cor.row, cor.col],") with ", 
-                  my.file.names()[cor.col], "\n", sep="")
-            } 
-          }
+    #List stock names and stats
+    stats <- my.stocks.stats()
+    print(stats)
+    
+    returns.matrix <- NULL
+    #Create correlation matrix
+    for (stock in my.stocks()) {
+      returns.matrix <- cbind(returns.matrix, stock$Day.Return)
+    }
+    
+    #Check correlation
+    if (length(my.stocks()) >1) {
+      dimnames(returns.matrix) <- list(NULL, my.file.names())
+      cor.matrix <- cor(returns.matrix)
+      large.corel <- length(which(cor.matrix > 0.3))
+      if (large.corel>length(my.file.names())) {
+        cat("\nNot a good choice...\n")
+        hi.corel <- which(cor.matrix > 0.3, arr.ind=TRUE) 
+        len <- length(hi.corel[,1])
+        i <- 1
+        for (i in 1:len) {
+          cor.row <- hi.corel[i,1]
+          cor.col <- hi.corel[i,2]
+          if (cor.row < cor.col) {
+            cat(my.file.names()[cor.row], " has hi-correlation (",
+                cor.matrix[cor.row, cor.col],") with ", 
+                my.file.names()[cor.col], "\n", sep="")
+          } 
         }
       }
+    }
   })
   
   getFileNames <- function() {
     return (input$stocks)    
+  }
+  
+  getStats <- function() {
+    file.names <- my.file.names()
+    stats <- data.frame(Mean=numeric(), Median=numeric(), SD=numeric())
+    i <- 1
+    for (stock in my.stocks()) {
+      stats[i,]$Mean <- mean(stock$Day.Return)
+      stats[i,]$SD  <- sd(stock$Day.Return)
+      stats[i,]$Median  <- median(stock$Day.Return)
+      i <- i+1
+    }
+    rownames(stats) <- my.file.names()
+    return(stats)
+  }
+  
+  getSimData <- function() {
+    simStockReturns <- matrix(nrow=sim.count, ncol=length(my.file.names()))
+    
+    i <- 1
+    for (stock in my.stocks()) {
+      mean <- my.stocks.stats()$Mean[i]
+      median <- my.stocks.stats()$Median[i]
+      sdev <- my.stocks.stats()$SD[i]
+      simStockReturns[,i] <- rnorm(sim.count, mean, sdev)
+      i <- i+1
+    }
+    return(simStockReturns)
   }
   
   processStockFileData <- function() {
@@ -73,7 +101,6 @@ shinyServer(function(input, output) {
       return(stockData)
     }
     
-    file.path <- "/home/user/work/Insofe/Mini-Project-2/Stocks/"
     stock.data <- NULL
     file.count <- 1
     stocks <- c()
@@ -86,7 +113,7 @@ shinyServer(function(input, output) {
       #Sort data based on Date col
       stock.data <- stock.data[order(stock.data$Date, decreasing=FALSE),]
       #Extract training data - 1 year data
-      stock.data <- stock.data[1:207,]
+      #stock.data <- stock.data[1:207,]
       #Add a column to store day returns
       stock.data <- calcDayReturn(stock.data)
       #Add data to my.stocks() list  
@@ -101,27 +128,145 @@ shinyServer(function(input, output) {
                 "dodgerblue2", "darksalmon")
   
   ########### INDIVIDUAL PLOTS OF DAILY RETURNS ###########
-  output$returnsPlot <- renderPlot ({
+  output$returnsPlotOld <- renderPlot ({
     num.img <- length(my.file.names())
     
     if (num.img>0) {
-    plotDayReturn <- function(dayReturnVector, chartTitle, lineColor) {
-      plot(c(1:length(dayReturnVector)), dayReturnVector, data=dayReturnVector, geom="line", 
-           main=chartTitle, xlab="Day", col=c(lineColor), type="l",  
-           ylab="Returns")
-    }
-    
-    i <- 1
-    par(mfrow=c(1,num.img))
-    for (my.stock in my.stocks()) {
-      plotDayReturn(my.stock$Day.Return, my.file.names()[i], myColors[i])
-      i <- i+1
-    }
+      plotDayReturn <- function(dayReturnVector, chartTitle, lineColor) {
+        plot(c(1:length(dayReturnVector)), dayReturnVector, data=dayReturnVector, geom="line", 
+             main=chartTitle, xlab="Day", col=c(lineColor), type="l",  
+             ylab="Returns")
+      }
+      
+      i <- 1
+      par(mfrow=c(1,num.img))
+      for (my.stock in my.stocks()) {
+        plotDayReturn(my.stock$Day.Return, my.file.names()[i], myColors[i])
+        i <- i+1
+      }
     }
   })
+  
+  my.colors.light <- c("lightpink", "lightsalmon", "lightskyblue3",  "lightgoldenrod1", 
+                       "lightseagreen", "lightcoral", "lightgoldenrod1" )
+  
+  output$returnsPlot <- renderPlot ({
+    plot.new()
+    num.plot <- length(my.file.names())
+    
+    if (num.plot>0) {
+      plot.names <- c(substr(my.file.names(), 1, 5), "Portfolio")
+      
+      #Plot settings, Font size 1.25x times
+      par(mfrow=c(1,2),cex.main=1, cex.axis=1)
+      
+      plot.data <- my.stocks.stats()
+      pfolio.returns.mean <- mean(my.pfolio.returns())
+      pfolio.returns.median <- median(my.pfolio.returns())
+      pfolio.returns.sdev <- sd(my.pfolio.returns())
+      plot.data <- rbind(plot.data, c(pfolio.returns.mean, 
+                                      pfolio.returns.median, pfolio.returns.sdev))
+      
+      #Plot the Return for each stock and the overall return
+      x.labels <- paste(plot.names, "\n(", round(plot.data$Mean,digits=2), "%)", sep="")
+      barplot(plot.data$Mean, axes=TRUE, names.arg=x.labels, 
+              col=my.colors.light, main="Daily Returns")
+      abline(a=0,b=0)
+      #box(col="lightgoldenrod2")
+      
+      #Plot the SD for each stock and overall SD
+      #par(mar=c(0,3,5,1))
+      x.labels <- paste(plot.names, "\n(", round(plot.data$SD,digits=2), ")", sep="")
+      barplot(plot.data$SD, axes=TRUE, names.arg=x.labels, 
+              col=my.colors.light, main="Risk")
+      
+      
+    }
+  })
+  
+  output$distPlot <- renderPlot ({
+    plot.new()
+    num.plot <- length(my.file.names())
+    
+    if (num.plot>0) {
+      
+      par(mfrow=c(1,2),cex.main=1, cex.axis=1)
+      
+      #Plot the percentage allocation of money to each stock
+      dist <- c(my.profile.matrix())*100
+      x.labels <- paste(c(substr(my.file.names(), 1, 5)),
+                        "\n(", round(dist,digits=2), "%)", sep="")
+      #Need to add an empty bar for alignment with other charts
+      dist <- c(dist,0)
+      x.labels <- c(x.labels, "")
+      barplot(dist, axes=TRUE, names.arg=x.labels,
+              col=my.colors.light, main="Investment Allocation") }
+  })
+  
   ########### INDIVIDUAL PLOTS OF DAILY RETURNS ###########
   
+  getHiRetMatrix <- function() {
+    stock.means <- matrix(my.stocks.stats()$Mean)
+    
+    #Start with allocating all money to a single stock
+    num.stocks <- length(my.file.names())
+    
+    #Create a set of simulated distributions which we shall use to identify the best from
+    sim.dist.matrix <- matrix(runif(num.stocks*sim.count), nrow=sim.count)
+    sim.dist.matrix <- sim.dist.matrix/rowSums(sim.dist.matrix)
+    
+    write.csv(sim.dist.matrix, "simDistMatrix.csv")
+    #Identify the distribution which gets maximum returns
+    stock.ret.matrix <-  my.sim.data()  %*% t(sim.dist.matrix)
+    
+    avg.ret <- colSums(stock.ret.matrix)
+    max.index <- which(avg.ret==max(avg.ret))
+    
+    ret.matrix <- matrix(sim.dist.matrix[max.index,], nrow=num.stocks)
+    return(ret.matrix)
+  }
+  
+  getProfileMatrix <- function() {
+    num.stocks <- length(my.file.names())
+    profile.matrix <- matrix(rep(0, num.stocks))
+    
+    if (input$profile == "equal") {
+      profile.matrix <- matrix(rep(1/num.stocks, num.stocks), ncol=1)
+    } else if (input$profile == "hi.ret") {
+      profile.matrix <- getHiRetMatrix()
+    } else if (input$profile == "weighted") {
+      #Collect the mean of each selected stock  
+      profile.matrix <- matrix(my.stocks.stats()$Mean, ncol=1)
+      #Remove -ve returns and replace them with 0
+      profile.matrix[profile.matrix<0] <- 0
+      #Normalize so the ratio sum up to 1
+      profile.matrix <- profile.matrix/sum(profile.matrix)
+    }
+    
+    return (profile.matrix)
+  }
+  
+  getPfolioReturns <- function() {
+    returns <- my.sim.data() %*% my.profile.matrix()
+    return(returns)
+  }
+  
   output$returnsDetails <- renderPrint ({
+    num.stocks <- length(my.file.names())
+    if (num.stocks > 0) {
+      profile.matrix <- my.profile.matrix()
+      
+      result.returns <- my.pfolio.returns()
+      
+      result.returns.mean <- mean(result.returns)
+      result.returns.sdev <- sd(result.returns)
+      
+      profile.matrix <- 100*profile.matrix
+      
+      cat("Distribution recommended: ", profile.matrix, "\n")
+      cat("Returns: Mean:", result.returns.mean, ", Risk: ", result.returns.sdev, "\n")
+      
+    }    
   })
   
 })
