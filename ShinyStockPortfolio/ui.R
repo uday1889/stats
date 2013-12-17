@@ -8,14 +8,26 @@ shinyUI(pageWithSidebar(
   
   sidebarPanel(
     
+    tags$head(
+      tags$style(type="text/css", "label.radio { display: inline-block; }", ".radio input[type=\"radio\"] { float: none; }"),
+      tags$style(type="text/css", "select { max-width: 200px; }"),
+      tags$style(type="text/css", "textarea { max-width: 185px; }"),
+      tags$style(type="text/css", ".jslider { max-width: 200px; }"),
+      tags$style(type='text/css', ".well { padding: 12px; margin-bottom: 5px; max-width: 280px; }"),
+      tags$style(type='text/css', ".span4 { max-width: 280px; }")
+    ),
+    
     selectInput("profile", "Investment Profile:",
                 c("Distribute Equally" = "equal",
                   "Weighted by Returns" = "weighted",
-                  "Highest Returns" = "hi.ret",
-                  "Lowest Risks" = "low.risk")
+                  "Highest Returns" = "hi.ret")
     ),
-    br(),
     
+    br(),
+    br(),
+    sliderInput("risk.limit", "Risk Appetite:", 
+                min=0, max=3, value=1,  step= 0.1),
+    br(),
     checkboxGroupInput("stocks", "Stock:",
                        list("Asian Paints"="Asian Paints.csv", 
                             "Bharati Airtel"="Bharati Airtel.csv", 
@@ -24,8 +36,8 @@ shinyUI(pageWithSidebar(
                             "Coal INDIA Ltd"="Coal INDIA Ltd.csv", 
                             "DLF"="DLF.csv", 
                             "Dr. Reddy's"="Dr. Reddy's.csv", 
-                            "GAIL"="GAIL.csv", 
-                            "HCL TECH"="HCL TECH.csv", 
+                            #                             "GAIL"="GAIL.csv", 
+                            #                             "HCL TECH"="HCL TECH.csv", 
                             "HDFC Bank"="HDFC Bank.csv", 
                             "Hero Motor Corp Ltd"="Hero Motor Corp Ltd.csv", 
                             "ICICI Bank"="ICICI Bank.csv", 
@@ -35,8 +47,8 @@ shinyUI(pageWithSidebar(
                             "Mahindra & Mahindra"="Mahindra & Mahindra.csv", 
                             "Maruti Suzuki"="Maruti Suzuki.csv", 
                             "ONGC"="ONGC.csv", 
-                            "Punjab National Bank"="Punjab National Bank.csv", 
-                            "Ranbaxy"="Ranbaxy.csv", 
+                            #                             "Punjab National Bank"="Punjab National Bank.csv", 
+                            #                             "Ranbaxy"="Ranbaxy.csv", 
                             "SBI"="SBI.csv", 
                             "Tata Motors"="Tata Motors.csv", 
                             "Tata Steel"="Tata Steel.csv", 
@@ -51,8 +63,13 @@ shinyUI(pageWithSidebar(
   
   
   mainPanel(
-    plotOutput("returnsPlot"),
-    plotOutput("distPlot")
+    tabsetPanel(
+      tabPanel("Portfolio Analysis", plotOutput("returnsPlot", height=700)),
+      tabPanel("Summary", dataTableOutput("returnsTable")), 
+      tabPanel("Individual Stocks", plotOutput("indivPlots", height="auto"))
+    )
+    #plotOutput("returnsPlot"),
+    #plotOutput("distPlot")
     #verbatimTextOutput("returnsDetails")
   )
 ))

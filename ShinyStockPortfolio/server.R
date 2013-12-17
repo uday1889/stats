@@ -17,8 +17,12 @@ shinyServer(function(input, output) {
   
   sim.count <- 10000
   
-  output$checkStocks <- renderPrint({
-    
+  getIndPlotHeight <- function() {
+    num.plot.rows <- ceiling(length(my.file.names())/3)
+    return (num.plot.rows*350)
+  }
+  
+  checkStocks <- renderPrint({
     if (is.na(input)) {
       return(NULL)
     }
@@ -128,24 +132,22 @@ shinyServer(function(input, output) {
                 "dodgerblue2", "darksalmon")
   
   ########### INDIVIDUAL PLOTS OF DAILY RETURNS ###########
-  output$returnsPlotOld <- renderPlot ({
+  output$indivPlots <- renderPlot ({
     num.img <- length(my.file.names())
-    
     if (num.img>0) {
       plotDayReturn <- function(dayReturnVector, chartTitle, lineColor) {
-        plot(c(1:length(dayReturnVector)), dayReturnVector, data=dayReturnVector, geom="line", 
-             main=chartTitle, xlab="Day", col=c(lineColor), type="l",  
-             ylab="Returns")
+        hist(dayReturnVector, main=chartTitle, col=my.colors.light)
       }
       
       i <- 1
-      par(mfrow=c(1,num.img))
+      num.img.rows <- ceiling(num.img/3)
+      par(mfrow=c(num.img.rows,3),cex.main=1.5, cex.axis=1.5)
       for (my.stock in my.stocks()) {
         plotDayReturn(my.stock$Day.Return, my.file.names()[i], myColors[i])
         i <- i+1
       }
     }
-  })
+  }, height=getIndPlotHeight)
   
   my.colors.light <- c("lightpink", "lightsalmon", "lightskyblue3",  "lightgoldenrod1", 
                        "lightseagreen", "lightcoral", "lightgoldenrod1" )
@@ -158,7 +160,7 @@ shinyServer(function(input, output) {
       plot.names <- c(substr(my.file.names(), 1, 5), "Portfolio")
       
       #Plot settings, Font size 1.25x times
-      par(mfrow=c(1,2),cex.main=1, cex.axis=1)
+      par(mfrow=c(2,2),cex.main=1, cex.axis=1)
       
       plot.data <- my.stocks.stats()
       pfolio.returns.mean <- mean(my.pfolio.returns())
@@ -179,6 +181,19 @@ shinyServer(function(input, output) {
       x.labels <- paste(plot.names, "\n(", round(plot.data$SD,digits=2), ")", sep="")
       barplot(plot.data$SD, axes=TRUE, names.arg=x.labels, 
               col=my.colors.light, main="Risk")
+      
+      
+      #par(mfrow=c(1,2),cex.main=1, cex.axis=1)
+      
+      #Plot the percentage allocation of money to each stock
+      dist <- c(my.profile.matrix())*100
+      x.labels <- paste(c(substr(my.file.names(), 1, 5)),
+                        "\n(", round(dist,digits=2), "%)", sep="")
+      #Need to add an empty bar for alignment with other charts
+      dist <- c(dist,0)
+      x.labels <- c(x.labels, "")
+      barplot(dist, axes=TRUE, names.arg=x.labels,
+              col=my.colors.light, main="Investment Allocation") 
       
       
     }
@@ -215,11 +230,20 @@ shinyServer(function(input, output) {
     sim.dist.matrix <- matrix(runif(num.stocks*sim.count), nrow=sim.count)
     sim.dist.matrix <- sim.dist.matrix/rowSums(sim.dist.matrix)
     
-    write.csv(sim.dist.matrix, "simDistMatrix.csv")
-    #Identify the distribution which gets maximum returns
+    #write.csv(sim.dist.matrix, "simDistMatrix.csv")
     stock.ret.matrix <-  my.sim.data()  %*% t(sim.dist.matrix)
     
-    avg.ret <- colSums(stock.ret.matrix)
+    #Identify the distribution which gets maximum returns for a given risk
+    
+    avg.ret <- apply(stock.ret.matrix,2,mean)
+    sd.ret <- apply(stock.ret.matrix,2,sd)
+    
+    eval.df <- data.frame(avg.ret)
+    eval.df <- cbind(eval.df, sd.ret)
+    
+    #FIXME - there's a chance that the max values are more than one
+    #max.index <- which(eval.df$avg.ret==max(eval.df[which(eval.df$sd.ret<input$risk.limit)]$avg.ret))
+    
     max.index <- which(avg.ret==max(avg.ret))
     
     ret.matrix <- matrix(sim.dist.matrix[max.index,], nrow=num.stocks)
@@ -251,6 +275,19 @@ shinyServer(function(input, output) {
     return(returns)
   }
   
+  output$returnsTable <- renderDataTable({
+    library(ggplot2)
+    
+    ret.table.data <- data.frame(my.stocks.stats())
+    pfolio.data <- c(mean(my.pfolio.returns()), median(my.pfolio.returns()), sd(my.pfolio.returns()))
+    
+    ret.table.data <- rbind(ret.table.data, pfolio.data)
+    
+    ret.table.data$Name <- c(my.file.names(), "Portfolio")
+    ret.table.data
+    
+  }, options = list(bSortClasses = TRUE))
+  
   output$returnsDetails <- renderPrint ({
     num.stocks <- length(my.file.names())
     if (num.stocks > 0) {
@@ -261,10 +298,11 @@ shinyServer(function(input, output) {
       result.returns.mean <- mean(result.returns)
       result.returns.sdev <- sd(result.returns)
       
-      profile.matrix <- 100*profile.matrix
+      profile.matrix <- paste(100*profile.matrix, "%", sep="")
       
+      cat(checkStocks())
       cat("Distribution recommended: ", profile.matrix, "\n")
-      cat("Returns: Mean:", result.returns.mean, ", Risk: ", result.returns.sdev, "\n")
+      cat("\nPortfolio Returns: Mean:", result.returns.mean, ", Risk: ", result.returns.sdev, "\n")
       
     }    
   })
