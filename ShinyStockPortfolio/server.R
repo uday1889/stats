@@ -136,14 +136,14 @@ shinyServer(function(input, output) {
     num.img <- length(my.file.names())
     if (num.img>0) {
       plotDayReturn <- function(dayReturnVector, chartTitle, lineColor) {
-        hist(dayReturnVector, main=chartTitle, col=my.colors.light)
+        hist(dayReturnVector, main=chartTitle, col=lineColor)
       }
       
       i <- 1
       num.img.rows <- ceiling(num.img/3)
       par(mfrow=c(num.img.rows,3),cex.main=1.5, cex.axis=1.5)
       for (my.stock in my.stocks()) {
-        plotDayReturn(my.stock$Day.Return, my.file.names()[i], myColors[i])
+        plotDayReturn(my.stock$Day.Return, my.file.names()[i], my.colors.light[i])
         i <- i+1
       }
     }
@@ -160,7 +160,7 @@ shinyServer(function(input, output) {
       plot.names <- c(substr(my.file.names(), 1, 5), "Portfolio")
       
       #Plot settings, Font size 1.25x times
-      par(mfrow=c(2,2),cex.main=1, cex.axis=1)
+      par(mfrow=c(2,2),cex.main=1.2, cex.axis=1.2)
       
       plot.data <- my.stocks.stats()
       pfolio.returns.mean <- mean(my.pfolio.returns())
@@ -234,7 +234,6 @@ shinyServer(function(input, output) {
     stock.ret.matrix <-  my.sim.data()  %*% t(sim.dist.matrix)
     
     #Identify the distribution which gets maximum returns for a given risk
-    
     avg.ret <- apply(stock.ret.matrix,2,mean)
     sd.ret <- apply(stock.ret.matrix,2,sd)
     
@@ -242,9 +241,8 @@ shinyServer(function(input, output) {
     eval.df <- cbind(eval.df, sd.ret)
     
     #FIXME - there's a chance that the max values are more than one
-    #max.index <- which(eval.df$avg.ret==max(eval.df[which(eval.df$sd.ret<input$risk.limit)]$avg.ret))
-    
-    max.index <- which(avg.ret==max(avg.ret))
+    max.index <- which(eval.df$avg.ret==max(eval.df[which(eval.df$sd.ret<input$risk.limit),]$avg.ret))
+    #max.index <- which(avg.ret==max(avg.ret))
     
     ret.matrix <- matrix(sim.dist.matrix[max.index,], nrow=num.stocks)
     return(ret.matrix)
@@ -276,15 +274,14 @@ shinyServer(function(input, output) {
   }
   
   output$returnsTable <- renderTable({
-    library(ggplot2)
-    
-    ret.table.data <- data.frame(my.stocks.stats())
-    pfolio.data <- c(mean(my.pfolio.returns()), median(my.pfolio.returns()), sd(my.pfolio.returns()))
-    
-    ret.table.data <- rbind(ret.table.data, pfolio.data)
-    rownames(ret.table.data) <- c(my.file.names(), "Portfolio")
-    ret.table.data
-    
+    if (length(my.file.names() > 0)) {
+      ret.table.data <- data.frame(my.stocks.stats())
+      pfolio.data <- c(mean(my.pfolio.returns()), median(my.pfolio.returns()), sd(my.pfolio.returns()))
+      
+      ret.table.data <- rbind(ret.table.data, pfolio.data)
+      rownames(ret.table.data) <- c(my.file.names(), "Portfolio")
+      ret.table.data
+    }
   })
   
   output$returnsDetails <- renderPrint ({

@@ -26,7 +26,7 @@ shinyUI(pageWithSidebar(
     br(),
     br(),
     sliderInput("risk.limit", "Risk Appetite:", 
-                min=0, max=3, value=1,  step= 0.1),
+                min=0, max=5, value=4,  step= 0.1),
     br(),
     checkboxGroupInput("stocks", "Stock:",
                        list("Asian Paints"="Asian Paints.csv", 
@@ -60,16 +60,11 @@ shinyUI(pageWithSidebar(
     
   ),
   
-  
-  
   mainPanel(
     tabsetPanel(
       tabPanel("Portfolio Analysis", plotOutput("returnsPlot", height=700)),
       tabPanel("Summary", tableOutput("returnsTable"), verbatimTextOutput("returnsDetails")), 
       tabPanel("Individual Stocks", plotOutput("indivPlots", height="auto"))
     )
-    #plotOutput("returnsPlot"),
-    #plotOutput("distPlot")
-    #verbatimTextOutput("returnsDetails")
   )
 ))
