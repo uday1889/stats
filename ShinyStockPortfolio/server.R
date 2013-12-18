@@ -5,17 +5,33 @@ rm(list=ls(all=TRUE))
 
 shinyServer(function(input, output) {
   
+  
+  #Number of simulations - both for stock data and number of distributions
+  sim.count <- 1000
+  
   #Directory where the stock data files are stored
   file.path <- "/home/user/work/Insofe/Mini-Project-2/Stocks/"
   
+  #Names of stocks selected by user
   my.file.names <- reactive(getFileNames())  
+  #Number of stocks selected by user
+  num.stocks <- reactive(return(length(my.file.names())))
+  
   my.stocks <- reactive(processStockFileData())
   my.stocks.stats <- reactive(getStats())
-  my.sim.data <- reactive(getSimData())
   my.profile.matrix <- reactive(getProfileMatrix())
   my.pfolio.returns <- reactive(getPfolioReturns())
   
-  sim.count <- 10000
+  #Simulated Stock Daily Return Data using their means and stdev
+  my.sim.data <- reactive(getSimData())
+  
+  #Simulated distributions (allocations) across selected stocks
+  my.sim.dist.matrix <- reactive(getSimDistMatrix())
+  
+  #Product of my.sim.data and my.sim.dist.matrix
+  my.stock.ret.sim.data <- reactive(getStockRetSimData())
+  
+
   
   getIndPlotHeight <- function() {
     num.plot.rows <- ceiling(length(my.file.names())/3)
@@ -195,7 +211,10 @@ shinyServer(function(input, output) {
       barplot(dist, axes=TRUE, names.arg=x.labels,
               col=my.colors.light, main="Investment Allocation") 
       
-      
+      #Plot Risk Vs Returns Scatter
+      plot.data <- my.stock.ret.sim.data()
+      plot(apply(plot.data,2, mean), apply(plot.data, 2, sd), type="point", 
+           main="Risk Vs Return Simulation", xlab="Returns", ylab="Risk" )
     }
   })
   
@@ -219,19 +238,29 @@ shinyServer(function(input, output) {
   })
   
   ########### INDIVIDUAL PLOTS OF DAILY RETURNS ###########
+
+  getSimDistMatrix <- function() {
+    #Create a set of simulated distributions which we shall use to identify the best from
+    sim.dist.matrix <- matrix(runif(num.stocks()*sim.count), nrow=sim.count)
+    sim.dist.matrix <- sim.dist.matrix/rowSums(sim.dist.matrix)
+    
+    return (sim.dist.matrix)
+  }
   
-  getHiRetMatrix <- function() {
+  getStockRetSimData <- function() {
     stock.means <- matrix(my.stocks.stats()$Mean)
     
     #Start with allocating all money to a single stock
     num.stocks <- length(my.file.names())
     
-    #Create a set of simulated distributions which we shall use to identify the best from
-    sim.dist.matrix <- matrix(runif(num.stocks*sim.count), nrow=sim.count)
-    sim.dist.matrix <- sim.dist.matrix/rowSums(sim.dist.matrix)
-    
     #write.csv(sim.dist.matrix, "simDistMatrix.csv")
-    stock.ret.matrix <-  my.sim.data()  %*% t(sim.dist.matrix)
+    stock.ret.matrix <-  my.sim.data()  %*% t(my.sim.dist.matrix())
+    
+    return (stock.ret.matrix)
+  }
+  
+  getHiRetMatrix <- function() {
+    stock.ret.matrix <- my.stock.ret.sim.data()
     
     #Identify the distribution which gets maximum returns for a given risk
     avg.ret <- apply(stock.ret.matrix,2,mean)
@@ -240,11 +269,16 @@ shinyServer(function(input, output) {
     eval.df <- data.frame(avg.ret)
     eval.df <- cbind(eval.df, sd.ret)
     
-    #FIXME - there's a chance that the max values are more than one
-    max.index <- which(eval.df$avg.ret==max(eval.df[which(eval.df$sd.ret<input$risk.limit),]$avg.ret))
-    #max.index <- which(avg.ret==max(avg.ret))
+    sd.within.limits <- which(eval.df$sd.ret<input$risk.limit)
+    if (length(sd.within.limits > 0)) {
+      max.index <- which(eval.df$avg.ret==max(eval.df[which(eval.df$sd.ret<input$risk.limit),]$avg.ret))
+    } else {
+      max.index <- which(avg.ret==max(avg.ret))
+    }
     
-    ret.matrix <- matrix(sim.dist.matrix[max.index,], nrow=num.stocks)
+    sim.dist.matrix <- matrix(my.sim.dist.matrix(), ncol=num.stocks())
+    
+    ret.matrix <- matrix(sim.dist.matrix[max.index,], nrow=num.stocks())
     return(ret.matrix)
   }
   
@@ -295,7 +329,7 @@ shinyServer(function(input, output) {
       result.returns.sdev <- sd(result.returns)
       
       profile.matrix <- paste(100*profile.matrix, "%", sep="")
-      
+
       cat(checkStocks())
       cat("\n\n")
       cat("Distribution recommended: ", profile.matrix, "\n")
