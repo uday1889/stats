@@ -65,7 +65,7 @@ shinyUI(pageWithSidebar(
   mainPanel(
     tabsetPanel(
       tabPanel("Portfolio Analysis", plotOutput("returnsPlot", height=700)),
-      tabPanel("Summary", dataTableOutput("returnsTable")), 
+      tabPanel("Summary", tableOutput("returnsTable"), verbatimTextOutput("returnsDetails")), 
       tabPanel("Individual Stocks", plotOutput("indivPlots", height="auto"))
     )
     #plotOutput("returnsPlot"),

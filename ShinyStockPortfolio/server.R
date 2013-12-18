@@ -29,7 +29,7 @@ shinyServer(function(input, output) {
     
     #List stock names and stats
     stats <- my.stocks.stats()
-    print(stats)
+    #print(stats)
     
     returns.matrix <- NULL
     #Create correlation matrix
@@ -43,7 +43,7 @@ shinyServer(function(input, output) {
       cor.matrix <- cor(returns.matrix)
       large.corel <- length(which(cor.matrix > 0.3))
       if (large.corel>length(my.file.names())) {
-        cat("\nNot a good choice...\n")
+        cat("\nNot a good choice...\n\n")
         hi.corel <- which(cor.matrix > 0.3, arr.ind=TRUE) 
         len <- length(hi.corel[,1])
         i <- 1
@@ -275,18 +275,17 @@ shinyServer(function(input, output) {
     return(returns)
   }
   
-  output$returnsTable <- renderDataTable({
+  output$returnsTable <- renderTable({
     library(ggplot2)
     
     ret.table.data <- data.frame(my.stocks.stats())
     pfolio.data <- c(mean(my.pfolio.returns()), median(my.pfolio.returns()), sd(my.pfolio.returns()))
     
     ret.table.data <- rbind(ret.table.data, pfolio.data)
-    
-    ret.table.data$Name <- c(my.file.names(), "Portfolio")
+    rownames(ret.table.data) <- c(my.file.names(), "Portfolio")
     ret.table.data
     
-  }, options = list(bSortClasses = TRUE))
+  })
   
   output$returnsDetails <- renderPrint ({
     num.stocks <- length(my.file.names())
@@ -301,6 +300,7 @@ shinyServer(function(input, output) {
       profile.matrix <- paste(100*profile.matrix, "%", sep="")
       
       cat(checkStocks())
+      cat("\n\n")
       cat("Distribution recommended: ", profile.matrix, "\n")
       cat("\nPortfolio Returns: Mean:", result.returns.mean, ", Risk: ", result.returns.sdev, "\n")
       
