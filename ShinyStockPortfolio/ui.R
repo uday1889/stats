@@ -4,7 +4,7 @@ library(shiny)
 shinyUI(pageWithSidebar(
   
   # Application title
-  headerPanel("Stock Portfolio Guru"),
+  headerPanel("Stock Portfolio Guru - G6"),
   
   sidebarPanel(
     
@@ -26,8 +26,9 @@ shinyUI(pageWithSidebar(
     br(),
     br(),
     sliderInput("risk.limit", "Risk Appetite:", 
-                min=0, max=5, value=4,  step= 0.1),
+                min=0, max=5, value=3,  step= 0.1),
     br(),
+    
     checkboxGroupInput("stocks", "Stock:",
                        list("Asian Paints"="Asian Paints.csv", 
                             "Bharati Airtel"="Bharati Airtel.csv", 

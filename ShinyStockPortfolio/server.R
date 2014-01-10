@@ -7,7 +7,8 @@ shinyServer(function(input, output) {
   
   
   #Number of simulations - both for stock data and number of distributions
-  sim.count <- 1000
+  stock.sim.count <- 1000
+  dist.sim.count <- 10000
   
   #Directory where the stock data files are stored
   file.path <- "/home/user/work/Insofe/Mini-Project-2/Stocks/"
@@ -31,7 +32,7 @@ shinyServer(function(input, output) {
   #Product of my.sim.data and my.sim.dist.matrix
   my.stock.ret.sim.data <- reactive(getStockRetSimData())
   
-
+  
   
   getIndPlotHeight <- function() {
     num.plot.rows <- ceiling(length(my.file.names())/3)
@@ -95,14 +96,14 @@ shinyServer(function(input, output) {
   }
   
   getSimData <- function() {
-    simStockReturns <- matrix(nrow=sim.count, ncol=length(my.file.names()))
+    simStockReturns <- matrix(nrow=stock.sim.count, ncol=length(my.file.names()))
     
     i <- 1
     for (stock in my.stocks()) {
       mean <- my.stocks.stats()$Mean[i]
       median <- my.stocks.stats()$Median[i]
       sdev <- my.stocks.stats()$SD[i]
-      simStockReturns[,i] <- rnorm(sim.count, mean, sdev)
+      simStockReturns[,i] <- rnorm(stock.sim.count, mean, sdev)
       i <- i+1
     }
     return(simStockReturns)
@@ -211,37 +212,20 @@ shinyServer(function(input, output) {
       barplot(dist, axes=TRUE, names.arg=x.labels,
               col=my.colors.light, main="Investment Allocation") 
       
+      #This plot shows returns vs risk when the selected profile is "Highest Returns"
       #Plot Risk Vs Returns Scatter
       plot.data <- my.stock.ret.sim.data()
-      plot(apply(plot.data,2, mean), apply(plot.data, 2, sd), type="point", 
+      if (input$profile == "hi.ret") {
+        plot(apply(plot.data,2, mean), apply(plot.data, 2, sd), type="point", 
            main="Risk Vs Return Simulation", xlab="Returns", ylab="Risk" )
+    
+      }
     }
   })
   
-  output$distPlot <- renderPlot ({
-    plot.new()
-    num.plot <- length(my.file.names())
-    
-    if (num.plot>0) {
-      
-      par(mfrow=c(1,2),cex.main=1, cex.axis=1)
-      
-      #Plot the percentage allocation of money to each stock
-      dist <- c(my.profile.matrix())*100
-      x.labels <- paste(c(substr(my.file.names(), 1, 5)),
-                        "\n(", round(dist,digits=2), "%)", sep="")
-      #Need to add an empty bar for alignment with other charts
-      dist <- c(dist,0)
-      x.labels <- c(x.labels, "")
-      barplot(dist, axes=TRUE, names.arg=x.labels,
-              col=my.colors.light, main="Investment Allocation") }
-  })
-  
-  ########### INDIVIDUAL PLOTS OF DAILY RETURNS ###########
-
   getSimDistMatrix <- function() {
     #Create a set of simulated distributions which we shall use to identify the best from
-    sim.dist.matrix <- matrix(runif(num.stocks()*sim.count), nrow=sim.count)
+    sim.dist.matrix <- matrix(runif(num.stocks()*dist.sim.count), nrow=dist.sim.count)
     sim.dist.matrix <- sim.dist.matrix/rowSums(sim.dist.matrix)
     
     return (sim.dist.matrix)
@@ -329,7 +313,7 @@ shinyServer(function(input, output) {
       result.returns.sdev <- sd(result.returns)
       
       profile.matrix <- paste(100*profile.matrix, "%", sep="")
-
+      
       cat(checkStocks())
       cat("\n\n")
       cat("Distribution recommended: ", profile.matrix, "\n")
