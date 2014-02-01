@@ -11,7 +11,7 @@ shinyServer(function(input, output) {
   dist.sim.count <- 10000
   
   #Directory where the stock data files are stored
-  file.path <- "/home/user/work/Insofe/Mini-Project-2/Stocks/"
+  file.path <- "/home/dev/work/Insofe/Mini-Project-2/ShinyStockPortfolio"
   
   #Names of stocks selected by user
   my.file.names <- reactive(getFileNames())  
