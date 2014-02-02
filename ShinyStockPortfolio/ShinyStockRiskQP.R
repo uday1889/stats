@@ -86,4 +86,5 @@ cat("Minimum Risk: ", risk.min, ", at Return: ", Returns)
 
 #Recommended distribution for minimum risk
 risk.min.dist <- c(Weight1, Weight2, Weight3, Weight4, Weight5) 
-pie(risk.min.dist, labels=paste(sel.stocks, "\n(", risk.min.dist, "%)", sep=""), main="Recommended distribution \nfor minimum risk")
+pie.labels <- paste(sel.stocks, "\n(", risk.min.dist, "%)", sep="")
+pie(risk.min.dist, labels=pie.labels, main="Recommended distribution \nfor minimum risk")
