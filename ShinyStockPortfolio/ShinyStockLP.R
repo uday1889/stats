@@ -66,7 +66,7 @@ for (i in 1:nrow(risk.df)) {
     res
   } else {
     output <- cbind(sel.stocks,res$solution)
-    cat("Invest as follows for risk profile: \n", rownames(risk.df)[i])
+    cat("Invest as follows for risk profile: ", rownames(risk.df)[i], "\n")
     print(output)
     
     chart.title <- paste("Risk profile: ", rownames(risk.df)[i])
@@ -75,7 +75,3 @@ for (i in 1:nrow(risk.df)) {
   }
   i <- i + 1
 }
-
-#profile.sel <- profile.conservative
-
-
