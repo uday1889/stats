@@ -13,7 +13,6 @@ profile.sel <- profile.aggressive
 stock.returns <- read.csv("StockReturns.csv")
 colnames(stock.returns)[1] <- "Name"
 stock.returns
-head(stock.returns)
 
 #Select any 5 stocks
 num.stocks <- 5
@@ -52,7 +51,7 @@ med.risk <- apply(weights[which(sel.stocks$RiskLevel==2)],1,sum)
 hi.risk <- apply(weights[which(sel.stocks$RiskLevel==3)],1,sum) 
 
 cons <- rbind(w1, w2, w3, w4, w5, sum.weights, lo.risk, med.risk, hi.risk)
-dir <- c(rep(">=", 5), "<=",  "<=", "<=", "<=")
+dir <- c(rep(">=", 5), "=",  "<=", "<=", "<=")
 rhs <- c(rep(min.weight,5), 1, profile.sel[1], profile.sel[2], profile.sel[3])
 library(lpSolve)
 res <- lp("max", obj, cons, dir, rhs, compute.sens=0)
@@ -63,6 +62,3 @@ if (sum(res$solution) == 0) {
   cat("Invest as follows: \n")
   output
 }
-
-
-
