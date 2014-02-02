@@ -8,6 +8,9 @@ num.stocks <- 5
 # Load stock data for randomly selected num.stocks
 source("LoadStockData.R")
 
+# Chart plot settings
+par(mfrow=c(1,1),cex.main=1, cex.axis=1)
+
 #Selected Stocks
 sel.stocks
 #Create asset returns which will be used by portfolio 
@@ -63,17 +66,24 @@ while (ret.reqd < 1) {
     #Handle Errors - Error message expected
     pfolio <- portfolio(asset.returns,ret.reqd), error=function(e) break
   )
-  risk.returns <- rbind(risk.returns, c(pfolio$risk, pfolio$return))
+  risk.returns <- rbind(risk.returns, c(pfolio$risk, pfolio$return, pfolio$weights))
   #1% increments to required return
   ret.reqd <- ret.reqd+(0.001)
 }
-colnames(risk.returns) <- c("Risk", "Returns")
+colnames(risk.returns) <- c("Risk", "Returns", paste(c(rep("Weight",5)), c(1:5), sep=""))
 head(risk.returns,10)
+
+#Find the return with minimum risk
 risk.min <- min(risk.returns$Risk)
-risk.min.ret <- risk.returns[which(risk.returns$Risk==risk.min),]$Returns
-cat("Minimum Risk: ", risk.min, ", at Return: ", risk.min.ret)
+risk.min.record <- risk.returns[which(risk.returns$Risk==risk.min),]
+attach(risk.min.record)
 
 #Plot the returns to risk efficiency frontier
-plot(risk.returns, type='l', col="blue", main="Risk-Return Efficiency Frontier")
-abline(v=risk.min,h=risk.min.ret,col="red",lty=2)
+plot(risk.returns[,1:2], type='l', col="blue", main="Risk-Return Efficiency Frontier")
+abline(v=risk.min,h=Returns,col="red",lty=2)
 
+cat("Minimum Risk: ", risk.min, ", at Return: ", Returns)
+
+#Recommended distribution for minimum risk
+risk.min.dist <- c(Weight1, Weight2, Weight3, Weight4, Weight5) 
+pie(risk.min.dist, labels=paste(sel.stocks, "\n(", risk.min.dist, "%)", sep=""), main="Recommended distribution \nfor minimum risk")
