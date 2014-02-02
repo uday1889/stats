@@ -60,5 +60,11 @@ if (sum(res$solution) == 0) {
 } else {
   output <- cbind(sel.stocks,res$solution)
   cat("Invest as follows: \n")
-  output
+  print(output)
+  
+  # Let's plot a chart of dist
+  #Plot settings, Font size 1.25x times
+  par(mfrow=c(1,1),cex.main=1, cex.axis=1)
+  chart.title <- paste("Investment Weights based on LP")
+  barplot(res$solution, names=substr(sel.stocks$Name, 1, 6), main=chart.title, col=rainbow(13:15))
 }

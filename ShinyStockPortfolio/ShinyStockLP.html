@@ -183,7 +183,7 @@ hljs.initHighlightingOnLoad();
 
 <h3>ShinyStockLP.R</h3>
 
-<p>dev &mdash; <em>Feb 2, 2014, 7:28 AM</em></p>
+<p>dev &mdash; <em>Feb 2, 2014, 7:46 AM</em></p>
 
 <pre><code class="r">rm(list=ls(all=TRUE))
 setwd(&quot;/home/dev/work/Insofe/Mini-Project-2/ShinyStockPortfolio&quot;)
@@ -236,12 +236,12 @@ sel.stocks &lt;- sel.stocks[order(sel.stocks$SD),]
 sel.stocks
 </code></pre>
 
-<pre><code>                      Name     Mean   Median    SD
-7          Dr. Reddy&#39;s.csv  0.08718  0.02589 1.333
-9  Hero Motor Corp Ltd.csv  0.00194 -0.01491 1.741
-16                ONGC.csv  0.01202 -0.12837 1.860
-12        Jindal Steel.csv -0.12356 -0.04608 2.631
-6                  DLF.csv -0.05177 -0.06373 2.933
+<pre><code>                Name      Mean   Median    SD
+16          ONGC.csv  0.012018 -0.12837 1.860
+15 Maruti Suzuki.csv  0.091542 -0.03953 1.955
+17           SBI.csv  0.007124  0.06320 2.091
+10    ICICI Bank.csv  0.049827  0.00000 2.129
+1   Asian Paints.csv -0.066305  0.05807 4.304
 </code></pre>
 
 <pre><code class="r">
@@ -253,12 +253,12 @@ sel.stocks$RiskLevel &lt;- risk.level
 head(sel.stocks)
 </code></pre>
 
-<pre><code>                      Name     Mean   Median    SD RiskLevel
-7          Dr. Reddy&#39;s.csv  0.08718  0.02589 1.333         1
-9  Hero Motor Corp Ltd.csv  0.00194 -0.01491 1.741         1
-16                ONGC.csv  0.01202 -0.12837 1.860         2
-12        Jindal Steel.csv -0.12356 -0.04608 2.631         3
-6                  DLF.csv -0.05177 -0.06373 2.933         3
+<pre><code>                Name      Mean   Median    SD RiskLevel
+16          ONGC.csv  0.012018 -0.12837 1.860         1
+15 Maruti Suzuki.csv  0.091542 -0.03953 1.955         1
+17           SBI.csv  0.007124  0.06320 2.091         2
+10    ICICI Bank.csv  0.049827  0.00000 2.129         3
+1   Asian Paints.csv -0.066305  0.05807 4.304         3
 </code></pre>
 
 <pre><code class="r">
@@ -293,20 +293,26 @@ if (sum(res$solution) == 0) {
 } else {
   output &lt;- cbind(sel.stocks,res$solution)
   cat(&quot;Invest as follows: \n&quot;)
-  output
+  print(output)
+
+  # Let&#39;s plot a chart of dist
+  #Plot settings, Font size 1.25x times
+  par(mfrow=c(1,1),cex.main=1, cex.axis=1)
+  chart.title &lt;- paste(&quot;Investment Weights based on LP&quot;)
+  barplot(res$solution, names=substr(sel.stocks$Name, 1, 6), main=chart.title, col=rainbow(13:15))
 }
 </code></pre>
 
 <pre><code>Invest as follows: 
+                Name      Mean   Median    SD RiskLevel res$solution
+16          ONGC.csv  0.012018 -0.12837 1.860         1         0.05
+15 Maruti Suzuki.csv  0.091542 -0.03953 1.955         1         0.15
+17           SBI.csv  0.007124  0.06320 2.091         2         0.30
+10    ICICI Bank.csv  0.049827  0.00000 2.129         3         0.45
+1   Asian Paints.csv -0.066305  0.05807 4.304         3         0.05
 </code></pre>
 
-<pre><code>                      Name     Mean   Median    SD RiskLevel res$solution
-7          Dr. Reddy&#39;s.csv  0.08718  0.02589 1.333         1         0.15
-9  Hero Motor Corp Ltd.csv  0.00194 -0.01491 1.741         1         0.05
-16                ONGC.csv  0.01202 -0.12837 1.860         2         0.30
-12        Jindal Steel.csv -0.12356 -0.04608 2.631         3         0.05
-6                  DLF.csv -0.05177 -0.06373 2.933         3         0.45
-</code></pre>
+<p><img src="data:image/png;base64,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" alt="plot of chunk unnamed-chunk-1"/> </p>
 
 </body>
 
